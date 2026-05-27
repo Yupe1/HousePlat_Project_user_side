@@ -70,6 +70,11 @@ const router = createRouter({
               component: () => import('../views/user/AgreementView.vue'),
             },
             {
+              path: 'agreement/:agreementId',
+              name: 'agreementDetail',
+              component: () => import('../views/user/AgreementDetailView.vue'),
+            },
+            {
               path: 'mod',
               name: 'modProfile',
               component: () => import('../views/user/ModProfileView.vue'),

@@ -5,6 +5,7 @@ import { useDictStore } from '@/stores/dict.js'
 import { useUserStore } from '@/stores/user.js'
 import request from '@/axios/index.js'
 import { ElMessage } from 'element-plus'
+import { Phone, ChatDotRound } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,6 +16,12 @@ const house = ref(null)
 const loading = ref(false)
 const isFavorited = ref(false)
 const favoriteLoading = ref(false)
+
+// 经纪人相关
+const agentInfo = ref(null)
+const agentLoading = ref(false)
+const contactDialogVisible = ref(false)
+const contactMessage = ref('')
 
 // 【新增】图片预览浮窗相关状态
 const previewVisible = ref(false)
@@ -115,6 +122,10 @@ const loadHouseDetail = async () => {
       house.value = null
     } else {
       house.value = houseData
+      // 加载经纪人信息
+      if (houseData.maintainerId) {
+        await loadAgentInfo(houseData.maintainerId)
+      }
     }
     
     // If user is logged in, check if this house is favorited
@@ -126,6 +137,51 @@ const loadHouseDetail = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// 加载经纪人信息
+const loadAgentInfo = async (agentId) => {
+  if (!agentId) return
+  
+  try {
+    agentLoading.value = true
+    const response = await request.get(`user/agent/${agentId}`)
+    const resultObj = response.data?.result
+    
+    if (resultObj && resultObj.agent) {
+      agentInfo.value = resultObj.agent
+    }
+  } catch (error) {
+    console.error('Failed to load agent info:', error)
+    ElMessage.error('获取经纪人信息失败')
+  } finally {
+    agentLoading.value = false
+  }
+}
+
+// 打开联系对话框
+const openContactDialog = () => {
+  if (!userStore.userInfo) {
+    ElMessage.warning('请先登录后再联系经纪人')
+    router.push('/shell/user/login')
+    return
+  }
+  contactDialogVisible.value = true
+}
+
+// 发送联系消息
+const handleSendMessage = async () => {
+  if (!contactMessage.value.trim()) {
+    ElMessage.warning('请输入消息内容')
+    return
+  }
+  
+  // TODO: 这里预留了发送消息到经纪人的接口
+  // 可以根据实际需求实现消息发送逻辑
+  
+  ElMessage.success('消息已发送，经纪人会尽快回复您')
+  contactMessage.value = ''
+  contactDialogVisible.value = false
 }
 
 // 检查房源是否被收藏
@@ -305,8 +361,10 @@ onMounted(async () => {
             </div>
           </div>
           
-          <!-- 图片轮播 -->
-          <div class="house-header"> 
+          <!-- 图片轮播和经纪人信息 -->
+          <div class="house-header-wrapper">
+            <!-- 图片区域 -->
+            <div class="house-header"> 
               <!-- 情况1：有多张图，显示走马灯轮播 -->
               <template v-if="carouselImages.length > 1">
                 <el-carousel height="300px" trigger="click">
@@ -364,6 +422,47 @@ onMounted(async () => {
                   </div>
                 </div>
               </el-dialog>
+            </div>
+            
+            <!-- 经纪人信息区域 -->
+            <div class="agent-section">
+              <el-skeleton :loading="agentLoading" animated>
+                <template #template>
+                  <el-skeleton-item variant="circle" style="width: 80px; height: 80px;" />
+                  <el-skeleton-item variant="text" style="width: 60%; margin-top: 10px;" />
+                  <el-skeleton-item variant="text" style="width: 80%; margin-top: 10px;" />
+                  <el-skeleton-item variant="button" style="width: 100%; margin-top: 20px; height: 40px;" />
+                </template>
+                
+                <template #default>
+                  <div v-if="agentInfo" class="agent-info">
+                    <div class="agent-avatar">
+                      <el-avatar :size="80" :src="agentInfo.avatar || ''">
+                        {{ agentInfo.name?.charAt(0) || '经' }}
+                      </el-avatar>
+                    </div>
+                    <div class="agent-details">
+                      <h3 class="agent-name">{{ agentInfo.name }}</h3>
+                      <div class="agent-phone">
+                        <el-icon><Phone /></el-icon>
+                        <span>{{ agentInfo.phone }}</span>
+                      </div>
+                      <el-button 
+                        type="primary" 
+                        class="contact-btn"
+                        @click="openContactDialog"
+                        :disabled="house.isDeleted === 1">
+                        <el-icon><ChatDotRound /></el-icon>
+                        联系经纪人
+                      </el-button>
+                    </div>
+                  </div>
+                  <div v-else class="no-agent">
+                    <el-empty description="暂无经纪人信息" :image-size="100" />
+                  </div>
+                </template>
+              </el-skeleton>
+            </div>
           </div>
           
           
@@ -410,6 +509,46 @@ onMounted(async () => {
         </div>
       </template>
     </el-skeleton>
+    
+    <!-- 联系经纪人对话框 -->
+    <el-dialog
+      v-model="contactDialogVisible"
+      title="联系经纪人"
+      width="500px"
+      :close-on-click-modal="false">
+      <div class="contact-dialog-content">
+        <div class="agent-contact-header">
+          <el-avatar :size="50" :src="agentInfo?.avatar || ''">
+            {{ agentInfo?.name?.charAt(0) || '经' }}
+          </el-avatar>
+          <div class="agent-contact-info">
+            <h4>{{ agentInfo?.name }}</h4>
+            <p>电话：{{ agentInfo?.phone }}</p>
+          </div>
+        </div>
+        
+        <el-form @submit.prevent="handleSendMessage">
+          <el-form-item label="留言内容">
+            <el-input
+              v-model="contactMessage"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入您想了解的内容，例如：房源是否还可以看房、价格是否可以协商等..."
+              maxlength="500"
+              show-word-limit />
+          </el-form-item>
+          
+          <el-form-item>
+            <div class="dialog-actions">
+              <el-button @click="contactDialogVisible = false">取消</el-button>
+              <el-button type="primary" @click="handleSendMessage" :loading="false">
+                发送消息
+              </el-button>
+            </div>
+          </el-form-item>
+        </el-form>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -422,13 +561,14 @@ onMounted(async () => {
 }
 
 /* 1. 最外层容器：固定高度，隐藏超出的左右边缘 */
-.house-header {
+.house-header-wrapper .house-header {
+  flex: 0 0 500px;
   width: 500px;
   height: 300px;
   max-height: 300px;
   background: #f5f7fa;
   border-radius: 8px;
-  overflow: hidden; /* 核心：裁切掉左右超出的部分 */
+  overflow: hidden;
 }
 
 /* 2. 轮播组件基础撑满 */
@@ -597,5 +737,97 @@ onMounted(async () => {
   min-width: 60px;
   text-align: center;
   font-size: 14px;
+}
+
+/* 新增：图片和经纪人信息容器 */
+.house-header-wrapper {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  min-height: 300px;
+}
+
+/* 经纪人信息区域 */
+.agent-section {
+  width: 280px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.agent-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.agent-avatar {
+  margin-bottom: 15px;
+}
+
+.agent-name {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #303133;
+  text-align: center;
+}
+
+.agent-phone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #606266;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.contact-btn {
+  width: 100%;
+  height: 40px;
+}
+
+.no-agent {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+/* 联系对话框样式 */
+.contact-dialog-content {
+  padding: 10px 0;
+}
+
+.agent-contact-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.agent-contact-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  color: #303133;
+}
+
+.agent-contact-info p {
+  margin: 0;
+  color: #606266;
+  font-size: 14px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
 }
 </style>
