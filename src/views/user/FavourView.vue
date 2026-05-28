@@ -9,7 +9,8 @@ const favorites = ref([])
 const loading = ref(false)
 
 // 图片路径处理逻辑
-const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE || 'http://localhost:8080'
+// const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE || 'http://localhost:8080'
+const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE || ''
 const formatImageUrl = (path) => {
   if (!path) return 'https://via.placeholder.com/200x150?text=暂无图片'
   path = path.trim()

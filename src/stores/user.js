@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE || 'http://localhost:8080'
+const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE || ''
 const formatImageUrl = (path) => {
   if (!path) return null
   path = path.trim()

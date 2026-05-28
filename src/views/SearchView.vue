@@ -172,7 +172,13 @@ const viewHouseDetail = (houseId) => {
 const parseCover = (cover) => {
   if (!cover) return null
   const s = String(cover)
-  return 'http://localhost:8080' + s.trim()
+  // 动态获取当前浏览器的域名根路径（本地是 localhost:8082，线上是 47.94.122.83:8082）
+  // 配合 Nginx 的反向代理，让所有图片的请求端口和网页宿主端口保持一致
+  const baseOrigin = window.location.origin
+  
+  // 确保拼接时斜杠对齐
+  const urlPath = s.trim()
+  return baseOrigin.replace(/\/$/, '') + (urlPath.startsWith('/') ? urlPath : '/' + urlPath)
 }
 
 // Get dictionary options
@@ -374,7 +380,7 @@ const findDistrictPath = (districtId) => {
           @click="viewHouseDetail(house.id)"
         >
           <div class="house-image">
-            <img :src="parseCover(house.coverUrl) || 'http://localhost:8080/uploaded/house/cover/default.jpg'" alt="房源图片" />
+            <img :src="parseCover(house.coverUrl) || '/uploaded/house/cover/default.jpg'" alt="房源图片" />
           </div>
           <div class="house-info">
             <div class="house-title">

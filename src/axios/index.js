@@ -4,10 +4,12 @@ import router from '@/router';
 // 引入C端 用户 Pinia Store
 import { useUserStore } from '@/stores/user.js';
 
+const currentHost = window.location.protocol + '//' + window.location.host;// 生产环境下的接口地址，自动适配当前域名和端口
+
 const request = axios.create({
-    
-    baseURL: 'http://localhost:8081',
-    // baseURL:'http://192.168.0.115:8081',   //npm run dev -- --host
+    // baseURL: currentHost + '/api', // 生产环境下的接口地址
+    baseURL: 'http://localhost:8081', // 开发环境下的接口地址，npm run dev 默认是 localhost
+    // baseURL:'http://192.168.0.115:8081',   //npm run dev -- --host  局域网下测试用
     timeout: 5000,
     // 支持跨域携带 Cookie，保证你的 HttpSession 登录不失效
     withCredentials: true 

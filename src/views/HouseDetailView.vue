@@ -42,7 +42,8 @@ const nextImage = () => {
 
 // 【核心修改】定义你的 Nginx 图片基础路径
 // 优先使用环境变量，如果没有则回退到写死的本地 Nginx 地址
-const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE || 'http://localhost:8080'
+// const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE || 'http://localhost:8080'
+const imgBaseUrl = import.meta.env.VITE_IMAGE_BASE || ''
 
 // 辅助函数：将相对路径转为带域名的绝对路径
 const formatImageUrl = (path) => {
